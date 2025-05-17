@@ -79,7 +79,6 @@ const Signup = () => {
         localStorage.setItem('user', JSON.stringify(responseData.user));
         
         toast.success('Registration successful!');
-        // Redirect based on role
         if (role === 'professor') {
           navigate(`/Teacher/Dashboard/${responseData.user.id}/Home`);
         } else {

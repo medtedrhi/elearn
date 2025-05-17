@@ -6,7 +6,7 @@ import { Toaster } from 'react-hot-toast'
 import ProtectedRoute from './components/ProtectedRoute'
 
 // Layouts & Pages
-
+import Enrollement from './Pages/Home/Enrollement/Enrollement'
 import Layout from './Layout'
 import Landing from './Pages/Home/Landing/Landing'
 import About from './Pages/Home/About/About'
@@ -226,7 +226,7 @@ const AppRouter = () => {
           <Route path='/Teacher/Dashboard/:ID/Classes' element={<TeacherClasses />} />
           <Route path='/Teacher/Dashboard/:ID/Courses' element={<TeacherCourses />} />
         </Route>
-        
+        <Route path='/courses/:id' element={<Enrollement/>}/>
         <Route path='/forgetPassword' element={<Forgetpassword />} />
         <Route path='/student/forgetPassword/:token' element={<ResetPassword />} />
         <Route path='/teacher/forgetPassword/:token' element={<ResetTeacher />} />

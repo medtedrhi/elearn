@@ -66,8 +66,7 @@ function TeacherClasses() {
                     <p className='text-sm bg-[#4E84C1] p-2 rounded-lg'>{clas.status}</p>
                 </div>
             ))}
-
-            </div>
+</div>
 
             {data.length > 0 && (
                 <NavLink to={data[0]?.link} target='_blank'>
@@ -92,7 +91,7 @@ function TeacherClasses() {
             )}
 
             <div onClick={() => setShowPopup(true)} className='absolute right-10 bg-blue-900 p-2 rounded-sm cursor-pointer'>
-                + ADD CLASS
+                + ADD CLASS 
             </div>
             {showPopup && (
                 <AddClass onClose={() => setShowPopup(false)} />

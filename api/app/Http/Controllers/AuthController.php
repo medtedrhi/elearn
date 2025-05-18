@@ -14,7 +14,7 @@ class AuthController
     {
         // Validate input data
         $validated = $request->validate([
-            'username' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users,email',
             'email'    => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
             'role'     => 'required|string|in:admin,professor,student',

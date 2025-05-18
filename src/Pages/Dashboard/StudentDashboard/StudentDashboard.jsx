@@ -13,7 +13,7 @@ function StudentDashboard() {
 
   const Handlelogout = async() => {
     try {
-      const response = await fetch('http://127.0.0.1:8001/logout', {
+      const response = await fetch('http://127.0.0.1:8000/v1/logout', {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",
@@ -43,7 +43,7 @@ function StudentDashboard() {
   useEffect(() => {
     const getData = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:8001/profile`, {
+        const response = await fetch(`http://127.0.0.1:8000/v1/users/${ID}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

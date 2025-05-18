@@ -9,7 +9,7 @@ function DashboardTeacher() {
   useEffect(() => {
     const getData = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/profile/${ID}`, {
+        const response = await fetch(`http://127.0.0.1:8000/v1/users/${ID}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -33,8 +33,8 @@ function DashboardTeacher() {
   return (
     <div className="m-5 ml-60 text-white">
       <div className="flex flex-col gap-5">
-        <p>Name: <span className="text-black">{data.Firstname} {data.Lastname}</span></p>
-        <p>Email: <span className="text-black">{data.Email}</span></p>
+        <p>Name: <span className="text-black">{data.username} </span></p>
+        <p>Email: <span className="text-black">{data.email}</span></p>
       </div>
       {error && <p className="text-red-500">Error: {error}</p>}
     </div>

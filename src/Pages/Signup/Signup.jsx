@@ -5,6 +5,7 @@ import Images from "../Images/Grammar-correction.svg";
 import Radiobtn from "../Components/RadioBtn/Radiobtn";
 import Header from "../Home/Header/Header";
 import toast from 'react-hot-toast';
+import { id } from "date-fns/locale";
 
 const Signup = () => {
   // State to hold user input and errors
@@ -77,9 +78,15 @@ const Signup = () => {
         // Store the token and user data
         localStorage.setItem('token', responseData.token);
         localStorage.setItem('user', JSON.stringify(responseData.user));
-        
+        if(!(userType == 'teacher')){
+         navigate('/quiz');
+
+        }else{
+          console.log(responseData)
+          navigate('/Teacher/Dashboard/' + responseData.user.username)
+        }
         toast.success('Registration successful!');
-        navigate('/quiz')
+        
       } else {
         // Handle validation errors from the server
         if (response.status === 422) {

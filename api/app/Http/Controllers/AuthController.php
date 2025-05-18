@@ -67,8 +67,8 @@ class AuthController
     }
 
     // Get authenticated user
-    public function profile(Request $request)
+    public function profile(Request $request, $id)
     {
-        return response()->json($request->user());
+        return response()->json($request->user($id));
     }
 }

@@ -79,11 +79,7 @@ const Signup = () => {
         localStorage.setItem('user', JSON.stringify(responseData.user));
         
         toast.success('Registration successful!');
-        if (role === 'professor') {
-          navigate(`/Teacher/Dashboard/${responseData.user.id}/Home`);
-        } else {
-          navigate(`/Student/Dashboard/${responseData.user.id}/Search`);
-        }
+        navigate('/quiz')
       } else {
         // Handle validation errors from the server
         if (response.status === 422) {

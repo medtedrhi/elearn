@@ -55,7 +55,7 @@ function StudentDashboard() {
     }
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/users/${ID}`, {
+      const response = await fetch(`http://127.0.0.1:8000/v1/users/${ID}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -121,13 +121,7 @@ function StudentDashboard() {
         </div>
 
         <div className='flex flex-col gap-1'>
-          <NavLink to = {`/Student/Dashboard/${ID}/Search`} className={({isActive}) => isActive ? "bg-white p-3 px-[4.61rem] text-center font-semibold text-[#4E84C1]" : "p-3 text-center font-semibold text-[#4E84C1]" }> 
-          Teacher
-          </NavLink>
-
-          <NavLink to = {`/Student/Dashboard/${ID}/Classes`} className={({isActive}) => isActive ? "bg-white p-3 px-[4.61rem] text-center font-semibold text-[#4E84C1]" : "p-3 text-center font-semibold text-[#4E84C1]" }> 
-          Classes
-          </NavLink>
+          
 
           <NavLink to = {`/Student/Dashboard/${ID}/Courses`} className={({isActive}) => isActive ? "bg-white p-3 px-[4.61rem] text-center font-semibold text-[#4E84C1]" : "p-3 text-center font-semibold text-[#4E84C1]" }> 
           Courses

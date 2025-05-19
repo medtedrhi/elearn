@@ -69,9 +69,11 @@ function Enrollement() {
             }
 
             const contentsData = await contentsResponse.json();
+            // Filter contents to only include those belonging to this section
+            const sectionContents = contentsData.filter(content => content.section_id === section.id);
             return {
               ...section,
-              contents: contentsData,
+              contents: sectionContents,
             };
           })
         );

@@ -9,8 +9,7 @@ function Footer() {
             <img src="https://www.figma.com/file/6b4R8evBkii6mI53IA4vSS/image/53619c42501fb7619406ed947b38c5fa4f07597c" width={60} alt="" />
             <h2>Title</h2>
           </div>
-          <p>Copyright  © 2024</p>
-          <p>Small Change. Big Change.</p>
+          
         </div>
         <div className="rightPart">
           <div className="links">

@@ -8,7 +8,7 @@ function Chatbot({ content, onClose }) {
     const [toastMessage, setToastMessage] = useState('');
     const messagesEndRef = useRef(null);
 
-    const API_KEY = "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";
+    const API_KEY = "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";
     const MODEL = "mistralai/mistral-7b-instruct:free";
     const API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -23,6 +23,10 @@ function Chatbot({ content, onClose }) {
     // Function to get AI response
     const getAIResponse = async (prompt, conversationHistory = []) => {
         try {
+            // Log the request details
+            console.log('Making API request to:', API_URL);
+            console.log('Using model:', MODEL);
+
             const conversation = [
                 { 
                     role: "system", 
@@ -32,6 +36,15 @@ function Chatbot({ content, onClose }) {
                 { role: "user", content: prompt }
             ];
 
+            const requestBody = {
+                model: MODEL,
+                messages: conversation,
+                temperature: 0.7,
+                max_tokens: 1000
+            };
+
+            console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: {
@@ -40,20 +53,45 @@ function Chatbot({ content, onClose }) {
                     'HTTP-Referer': window.location.origin,
                     'X-Title': 'E-Learn Assistant'
                 },
-                body: JSON.stringify({
-                    model: MODEL,
-                    messages: conversation
-                })
+                body: JSON.stringify(requestBody)
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to get response from AI');
+            // Log the response status and headers
+            console.log('Response status:', response.status);
+            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+            // Get the response text first
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+
+            // Try to parse the response as JSON
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error('Failed to parse response as JSON:', e);
+                throw new Error(`Invalid JSON response: ${responseText}`);
             }
 
-            const data = await response.json();
+            if (!response.ok) {
+                console.error('API Error Response:', data);
+                throw new Error(
+                    `API Error (${response.status}): ${data.error?.message || data.error || JSON.stringify(data)}`
+                );
+            }
+
+            if (!data.choices?.[0]?.message?.content) {
+                console.error('Invalid response format:', data);
+                throw new Error('Invalid response format from API');
+            }
+
             return data.choices[0].message.content;
         } catch (error) {
-            console.error('Chat error:', error);
+            console.error('Detailed error:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
             throw error;
         }
     };
@@ -63,11 +101,14 @@ function Chatbot({ content, onClose }) {
         const getInitialSummary = async () => {
             setIsLoading(true);
             try {
-                const summaryPrompt = `Please provide a clear and concise summary of the following content. Focus on the main points and key concepts:\n\n${content}`;
+                console.log('Getting initial summary for content:', content.substring(0, 100) + '...');
+                const summaryPrompt = `Please provide a clear and concise summary of the following content. Focus on the main points and key 
+concepts:\n\n${content}`;
                 const summary = await getAIResponse(summaryPrompt);
                 setMessages([{ role: 'assistant', content: summary }]);
             } catch (error) {
-                setToastMessage('Failed to generate summary. Please try again.');
+                console.error('Summary generation error:', error);
+                setToastMessage(`Failed to generate summary: ${error.message}`);
                 setShowToast(true);
             } finally {
                 setIsLoading(false);
@@ -87,11 +128,13 @@ function Chatbot({ content, onClose }) {
         setIsLoading(true);
 
         try {
-            const questionPrompt = `Based on this content: ${content}\n\nUser question: ${userMessage}\n\nPlease provide a detailed answer that directly relates to the content. If the question is not related to the content, politely inform the user that you can only answer questions about the provided content.`;
+            const questionPrompt = `Based on this content: ${content}\n\nUser question: ${userMessage}\n\nPlease provide a detailed answer that directly relates to 
+the content. If the question is not related to the content, politely inform the user that you can only answer questions about the provided content.`;
             const reply = await getAIResponse(questionPrompt, messages);
             setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
         } catch (error) {
-            setToastMessage('Failed to get response from AI. Please try again.');
+            console.error('Question handling error:', error);
+            setToastMessage(`Failed to get response: ${error.message}`);
             setShowToast(true);
         } finally {
             setIsLoading(false);
@@ -148,7 +191,8 @@ function Chatbot({ content, onClose }) {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 
+disabled:opacity-50"
                     >
                         {isLoading ? '...' : 'Send'}
                     </button>
@@ -171,3 +215,4 @@ function Chatbot({ content, onClose }) {
 }
 
 export default Chatbot;
+

@@ -51,7 +51,9 @@ function Courses() {
               },
             });
             const contentsData = await contentsRes.json();
-            return { ...section, contents: contentsData };
+            // Only include contents that belong to this section
+            const filteredContents = contentsData.filter(content => content.section_id === section.id);
+            return { ...section, contents: filteredContents };
           })
         );
 
@@ -88,11 +90,15 @@ function Courses() {
           {sections.map((section) => (
             <div key={section.id} className="mb-6">
               <h2 className="text-xl font-semibold mb-3">{section.title}</h2>
-              {section.contents.map((content) => (
-                <p key={content.id} className="ml-4 text-gray-700 mb-2">
-                  {content.content_data}
-                </p>
-              ))}
+              {section.contents && section.contents.length > 0 ? (
+                section.contents.map((content) => (
+                  <p key={content.id} className="ml-4 text-gray-700 mb-2">
+                    {content.content_data}
+                  </p>
+                ))
+              ) : (
+                <p className="ml-4 text-gray-500 italic">No content available for this section</p>
+              )}
             </div>
           ))}
         </div>

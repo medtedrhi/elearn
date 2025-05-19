@@ -1,11 +1,12 @@
 import React,{ useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import Popup from './Popup';
 import axios from 'axios';
 
 function StudentCourses() {
   const { ID } = useParams();
-  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const navigate = useNavigate();
+  const [courses, setCourses] = useState([]);
   const [recommendedCourses, setRecommendedCourses] = useState([]);
   const [popup, setPopup] = useState(false);
   const [subDetails, setsubDetails] = useState({});
@@ -17,8 +18,8 @@ function StudentCourses() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch enrolled courses
-        const enrolledResponse = await fetch(`/api/course/student/${ID}/enrolled`, {
+        // Fetch all lessons
+        const lessonsResponse = await fetch('http://localhost:8000/v1/lessons', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -26,15 +27,17 @@ function StudentCourses() {
           },
         });
 
-        if (!enrolledResponse.ok) {
-          throw new Error('Failed to fetch enrolled courses');
+        if (!lessonsResponse.ok) {
+          const errorData = await lessonsResponse.json();
+          throw new Error(errorData.message || 'Failed to fetch lessons');
         }
 
-        const enrolledData = await enrolledResponse.json();
-        setEnrolledCourses(enrolledData.data);
+        const lessonsData = await lessonsResponse.json();
+        console.log('Lessons response:', lessonsData);
+        setCourses(lessonsData || []);
 
-        // Fetch recommended courses
-        const recommendedResponse = await fetch(`http://127.0.0.1:8000/v1/recommendations/${ID}`, {
+        // Fetch recommendations for the user
+        const recommendationsResponse = await fetch(`http://localhost:8000/v1/recommendations?user_id=${ID}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -42,15 +45,63 @@ function StudentCourses() {
           },
         });
 
-        if (!recommendedResponse.ok) {
-          throw new Error('Failed to fetch recommended courses');
+        if (!recommendationsResponse.ok) {
+          const errorData = await recommendationsResponse.json();
+          throw new Error(errorData.message || 'Failed to fetch recommendations');
         }
 
-        const recommendedData = await recommendedResponse.json();
-        setRecommendedCourses(recommendedData.data || []);
+        const recommendationsData = await recommendationsResponse.json();
+        console.log('Recommendations response:', recommendationsData);
+        
+        // Check if we have recommendations data
+        if (!recommendationsData || !Array.isArray(recommendationsData)) {
+          setRecommendedCourses([]);
+          return;
+        }
+        
+        // Filter recommendations by score (greater than 50%)
+        const filteredRecommendations = recommendationsData.filter(rec => rec.recommendation_score < 50);
+        
+        // Fetch lesson details for each recommended course
+        const recommendedLessons = await Promise.all(
+          filteredRecommendations.map(async (rec) => {
+            if (!rec || !rec.lesson_id) {
+              console.warn('Invalid recommendation data:', rec);
+              return null;
+            }
+
+            try {
+              const lessonResponse = await fetch(`http://localhost:8000/v1/lessons/${rec.lesson_id}`, {
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+              });
+              
+              if (!lessonResponse.ok) {
+                console.warn(`Failed to fetch lesson ${rec.lesson_id}`);
+                return null;
+              }
+              
+              const lessonData = await lessonResponse.json();
+              return {
+                ...lessonData,
+                recommendation_score: rec.recommendation_score
+              };
+            } catch (error) {
+              console.error(`Error fetching lesson ${rec.lesson_id}:`, error);
+              return null;
+            }
+          })
+        );
+
+        // Filter out any null values from failed fetches
+        const validRecommendedLessons = recommendedLessons
+          .filter(lesson => lesson !== null)
+          .sort((a, b) => b.recommendation_score - a.recommendation_score);
+        setRecommendedCourses(validRecommendedLessons);
 
       } catch (error) {
-        console.error('Error fetching courses:', error);
+        console.error('Error fetching data:', error);
         setError(error.message);
       } finally {
         setLoading(false);
@@ -61,50 +112,22 @@ function StudentCourses() {
   }, [ID]);
 
   const openpopup = async(sub)=>{ 
-    setsubDetails(sub);
-    await axios.get(`/api/course/${sub.coursename}`)
-      .then(res => {setPopup(true);
-      setsubD(res.data.data)})
+    try {
+      setsubDetails(sub);
+      const response = await axios.get(`http://localhost:8000/v1/lessons/${sub.id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      setPopup(true);
+      setsubD(response.data);
+      // Navigate to the course page
+      navigate(`/courses/${sub.id}`);
+    } catch (error) {
+      console.error('Error fetching course details:', error);
+      setError('Failed to load course details');
+    }
   }
-
-  const price = {
-    math: 700,
-    physics: 800,
-    computer: 1000,
-    chemistry: 600,
-    biology: 500,
-  };
-
-  const daysName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-  const Image = {
-    "physics" : "https://www.figma.com/file/6b4R8evBkii6mI53IA4vSS/image/8e9bf690d23d886f63466a814cfbec78187f91d2",
-    "chemistry" : "https://www.figma.com/file/6b4R8evBkii6mI53IA4vSS/image/3e546b344774eb0235acc6bf6dad7814a59d6e95",
-    "biology" : "https://www.figma.com/file/6b4R8evBkii6mI53IA4vSS/image/28ac70002ae0a676d9cfb0f298f3e453d12b5555",
-    "math" : "https://www.figma.com/file/6b4R8evBkii6mI53IA4vSS/image/61930117e428a1f0f7268f888a84145f93aa0664",
-    "computer" : "https://www.figma.com/file/6b4R8evBkii6mI53IA4vSS/image/a64c93efe984ab29f1dfb9e8d8accd9ba449f272",
-  }
-
-  const renderCourseCard = (course) => (
-    <div key={course._id} className="text-white rounded-md bg-[#042439] cursor-pointer text-center p-3 w-[15rem]" onClick={() => openpopup(course)}>
-      <div className='flex justify-center items-center'>
-        <img src={Image[course.coursename]} alt={course.coursename} width={60}/>
-        <p>{course.coursename.toUpperCase()}</p>
-      </div>
-      <p className='mt-5 text-gray-300 text-sm text-center px-2'>{course.description}</p>
-
-      {course.schedule && (
-        <div>
-          <p className='mt-2 text-blue-700 font-bold'>Timing:</p>
-          {'[ '}
-          {course.schedule.map(daytime => {
-            return `${daysName[daytime.day]} ${Math.floor(daytime.starttime / 60)}:${daytime.starttime % 60 === 0 ? "00" : daytime.starttime % 60} - ${Math.floor(daytime.endtime/60)}:${daytime.endtime % 60 === 0 ? "00" : daytime.endtime % 60}`;
-          }).join(', ')}
-          {' ]'}
-        </div>
-      )}
-    </div>
-  );
 
   if (loading) {
     return (
@@ -124,28 +147,104 @@ function StudentCourses() {
 
   return (
     <>
-      <div className='pl-[12rem] mt-12'>
-        {/* Enrolled Courses Section */}
-        <div className='mb-8'>
-          <h2 className='text-2xl font-bold text-[#042439] mb-4'>My Enrolled Courses</h2>
-          <div className='flex gap-10 flex-wrap justify-center'>
-            {enrolledCourses.length > 0 ? (
-              enrolledCourses.map(course => renderCourseCard(course))
-            ) : (
-              <p className="text-gray-600">No enrolled courses yet.</p>
-            )}
+      <div className='pl-[8rem] mt-8 max-w-[80%] mx-auto'>
+        {/* All Courses Section */}
+        <div className='mb-6'>
+          <h2 className='text-xl font-bold text-[#042439] mb-3'>Available Courses</h2>
+          <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            <table className="w-full table-fixed">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[25%]">Course Name</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[40%]">Description</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">Difficulty</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {courses.length > 0 ? (
+                  courses.map((course) => (
+                    <tr key={`course-${course.id}`} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="text-sm font-medium text-gray-900 truncate">{course.title}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm text-gray-500 line-clamp-2">{course.description}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm text-gray-500 capitalize">{course.difficulty}</div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        <button
+                          onClick={() => openpopup(course)}
+                          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded transition-colors duration-200"
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="px-4 py-3 text-center text-gray-500">No courses available.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
         {/* Recommended Courses Section */}
-        <div className='mb-8'>
-          <h2 className='text-2xl font-bold text-[#042439] mb-4'>Recommended Courses</h2>
-          <div className='flex gap-10 flex-wrap justify-center'>
-            {recommendedCourses.length > 0 ? (
-              recommendedCourses.map(course => renderCourseCard(course))
-            ) : (
-              <p className="text-gray-600">No recommended courses available. Take the quiz to get personalized recommendations!</p>
-            )}
+        <div className='mb-6'>
+          <h2 className='text-xl font-bold text-[#042439] mb-3'>Recommended Courses</h2>
+          <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            <table className="w-full table-fixed">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">Course Name</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[35%]">Description</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">Difficulty</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">Match Score</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {recommendedCourses.length > 0 ? (
+                  recommendedCourses.map((course) => (
+                    <tr key={`recommended-${course.id}`} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="text-sm font-medium text-gray-900 truncate">{course.title}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm text-gray-500 line-clamp-2">{course.description}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm text-gray-500 capitalize">{course.difficulty}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-medium text-gray-900">{course.recommendation_score}%</div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        <button
+                          onClick={() => openpopup(course)}
+                          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded transition-colors duration-200"
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="px-4 py-3 text-center text-gray-500">No recommended courses available. Take the quiz to get personalized recommendations!</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

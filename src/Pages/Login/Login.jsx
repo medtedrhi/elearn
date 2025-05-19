@@ -76,7 +76,7 @@ export default function Login() {
             navigate(`/Teacher/Dashboard/${data.user.id}/Home`);
             break;
           case 'student':
-            navigate(`/Student/Dashboard/${data.user.id}/Search`);
+            navigate(`/Student/Dashboard/${data.user.id}/Courses`);
             break;
           default:
             navigate('/');

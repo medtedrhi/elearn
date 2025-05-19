@@ -79,9 +79,6 @@ function Courses() {
             <h1 className='text-2xl text-[#4E84C1] font-bold'>eduwise</h1>
           </div>
         </NavLink>
-        <div className='bg-[#0D199D] text-white py-2 px-5 rounded-full cursor-pointer'>
-          <p onClick={handleLogout}>Logout</p>
-        </div>
       </nav>
 
       <div className="flex justify-center p-8">

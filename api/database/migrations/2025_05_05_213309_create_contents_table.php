@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('section_id')->constrained('sections')->onDelete('cascade');
             $table->enum('content_type', ['text', 'video', 'quiz', 'file']);
             $table->longText('content_data')->nullable();
-            $table->integer('order_num');
+            $table->integer('order_num')->nullable();
             $table->timestamps();
         });
     }

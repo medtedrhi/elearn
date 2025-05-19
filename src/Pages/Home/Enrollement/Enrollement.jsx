@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Footer from '../../Footer/Footer';
 import Header from '../../Home/Header/Header';
+import Chatbot from '../../Components/Chatbot';
 
 function Enrollement() {
   const { id } = useParams();
@@ -9,6 +10,7 @@ function Enrollement() {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedContent, setSelectedContent] = useState(null);
 
   useEffect(() => {
     const fetchLessonAndSections = async () => {
@@ -86,6 +88,10 @@ function Enrollement() {
     fetchLessonAndSections();
   }, [id]);
 
+  const handleCloseChatbot = () => {
+    setSelectedContent(null);
+  };
+
   if (loading) {
     return (
       <div>
@@ -142,9 +148,17 @@ function Enrollement() {
                     <div key={content.id} className="border-l-4 border-blue-500 pl-4">
                       <div className="text-gray-600">
                         {content.content_type === 'text' ? (
-                          <p className="text-lg whitespace-pre-wrap break-words">
-                            {content.content_data}
-                          </p>
+                          <div>
+                            <p className="text-lg whitespace-pre-wrap break-words">
+                              {content.content_data}
+                            </p>
+                            <button
+                              onClick={() => setSelectedContent(content.content_data)}
+                              className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              Get AI Summary
+                            </button>
+                          </div>
                         ) : (
                           <p className="text-lg"></p>
                         )}
@@ -157,6 +171,7 @@ function Enrollement() {
           </div>
         </div>
       </div>
+      {selectedContent && <Chatbot content={selectedContent} onClose={handleCloseChatbot} />}
       <Footer />
     </div>
   );

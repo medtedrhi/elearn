@@ -1,94 +1,107 @@
-import React, { useState } from 'react';
-import '../Landing/Landing.css';
+import React, { useState, useEffect } from 'react';
+import { useParams, NavLink, useNavigate } from 'react-router-dom';
 import Footer from '../../Footer/Footer';
-import Header from '../Header/Header';
-import { Link } from 'react-router-dom';
-
-
-const fakeCourses = [
-  { id: 1, subject: 'python', title: 'Python for Beginners', teacher: 'Alice Johnson' },
-  { id: 2, subject: 'python', title: 'Advanced Python', teacher: 'Bob Smith' },
-  { id: 3, subject: 'javascript', title: 'JavaScript Essentials', teacher: 'Charlie Brown' },
-  { id: 4, subject: 'javascript', title: 'React.js in Depth', teacher: 'Dana White' },
-  { id: 5, subject: 'java', title: 'Java Fundamentals', teacher: 'Eli Davis' },
-  { id: 6, subject: 'java', title: 'Spring Boot Masterclass', teacher: 'Fay Williams' },
-  { id: 7, subject: 'cpp', title: 'C++ Basics', teacher: 'George Lucas' },
-  { id: 8, subject: 'cpp', title: 'OOP with C++', teacher: 'Helen Moore' },
-  { id: 9, subject: 'php', title: 'PHP for Web Dev', teacher: 'Ian Clarke' },
-  { id: 10, subject: 'php', title: 'Laravel Framework', teacher: 'Jane Foster' },
-];
-
+import '../Landing/Landing.css';
 
 function Courses() {
-  const [selectedSubject, setSelectedSubject] = useState(null);
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [lesson, setLesson] = useState(null);
+  const [sections, setSections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handleSubjectClick = (subject) => {
-    setSelectedSubject(subject);
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/');
   };
 
-  const getCourseCount = (subject) => {
-    return fakeCourses.filter(course => course.subject === subject).length;
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        
+        // Fetch the lesson by ID
+        const lessonRes = await fetch(`http://localhost:8000/v1/lessons/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const lessonData = await lessonRes.json();
+        setLesson(lessonData);
 
-  const filteredCourses = selectedSubject
-    ? fakeCourses.filter(course => course.subject === selectedSubject)
-    : [];
+        // Fetch only sections for the current lesson
+        const sectionsRes = await fetch(`http://localhost:8000/v1/sections?lesson_id=${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const sectionsData = await sectionsRes.json();
+
+        // Fetch contents for each section
+        const sectionsWithContents = await Promise.all(
+          sectionsData.map(async (section) => {
+            const contentsRes = await fetch(`http://localhost:8000/v1/contents?section_id=${section.id}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            const contentsData = await contentsRes.json();
+            return { ...section, contents: contentsData };
+          })
+        );
+
+        setSections(sectionsWithContents);
+      } catch (err) {
+        setError(err.message || 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!lesson) return <div>Course not found</div>;
 
   return (
-    <>
-      <Header />
-      <div className="courses">
-        
-        <p>Explore Programming Courses</p>
-        <hr className="underLine" />
-
-        {/* Language Selection */}
-        <div className="subjects">
-          {['python', 'javascript', 'java', 'cpp', 'php'].map(subject => (
-            <div
-              key={subject}
-              className="subject"
-              onClick={() => handleSubjectClick(subject)}
-              style={{
-                cursor: 'pointer',
-                padding: '10px 15px',
-                margin: '5px',
-                borderRadius: '8px',
-                backgroundColor: selectedSubject === subject ? '#4A90E2' : '#0b0b0b',
-                color: selectedSubject === subject ? '#3e3838' : '#000',
-                fontWeight: selectedSubject === subject ? 'bold' : 'normal',
-              }}
-            >
-              <p>{subject.charAt(0).toUpperCase() + subject.slice(1)}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Show Count */}
-        {selectedSubject && (
-          <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '16px' }}>
-            <strong>{getCourseCount(selectedSubject)}</strong> course(s) available for <strong>{selectedSubject}</strong>
+    <div>
+      <nav className='bg-[#04253A] px-10 py-3 flex justify-between items-center'>
+        <NavLink to="/">
+          <div className='flex items-center gap-3'>
+            <img src="/src/assets/logo.png" className="w-14" alt="logo" />
+            <h1 className='text-2xl text-[#4E84C1] font-bold'>eduwise</h1>
           </div>
-        )}
+        </NavLink>
+        <div className='bg-[#0D199D] text-white py-2 px-5 rounded-full cursor-pointer'>
+          <p onClick={handleLogout}>Logout</p>
+        </div>
+      </nav>
 
-        {/* Display Filtered Courses */}
-        <div className="flex items-center justify-center gap-10 flex-wrap p-4">
-          {selectedSubject && filteredCourses.length === 0 && (
-            <p>No courses found for {selectedSubject}.</p>
-          )}
-          {filteredCourses.map(course => (
-            <Link to={'/courses/' +course.id}>
-            <div key={course.id} className="bg-[#99afbc] p-5 rounded-md w-[300px]">
-              <h3 className="font-bold text-xl mb-2">{course.title}</h3>
-              <p><span className="font-semibold">Instructor:</span> {course.teacher}</p>
-              <p><span className="font-semibold">Subject:</span> {course.subject}</p>
+      <div className="flex justify-center p-8">
+        <div className="w-4/5 bg-white p-6 rounded shadow">
+          <h1 className="text-3xl font-bold mb-6">{lesson.title}</h1>
+          
+          {sections.map((section) => (
+            <div key={section.id} className="mb-6">
+              <h2 className="text-xl font-semibold mb-3">{section.title}</h2>
+              {section.contents.map((content) => (
+                <p key={content.id} className="ml-4 text-gray-700 mb-2">
+                  {content.content_data}
+                </p>
+              ))}
             </div>
-            </Link>
           ))}
         </div>
       </div>
       <Footer />
-    </>
+    </div>
   );
 }
 

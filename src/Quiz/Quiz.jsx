@@ -155,7 +155,7 @@ function Quiz() {
       console.log('Sending recommendations:', { recommendations });
 
       // Save recommendations to backend
-      const response = await fetch('http://127.0.0.1:8000/api/v1/recommendations', {
+      const response = await fetch('http://127.0.0.1:8000/v1/recommendations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

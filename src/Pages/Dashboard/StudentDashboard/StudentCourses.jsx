@@ -5,35 +5,60 @@ import axios from 'axios';
 
 function StudentCourses() {
   const { ID } = useParams();
-  const [data, setdata] = useState([]);
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [recommendedCourses, setRecommendedCourses] = useState([]);
   const [popup, setPopup] = useState(false);
   const [subDetails, setsubDetails] = useState({});
   const [subD, setsubD] = useState();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-      const getData = async () => {
-        try {
-          const response = await fetch(`/api/course/student/${ID}/enrolled`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-  
-          if (!response.ok) {
-            throw new Error('Failed to fetch data');
-          }
-  
-          const user = await response.json();
-          setdata(user.data);
-          console.log(user.data);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch enrolled courses
+        const enrolledResponse = await fetch(`/api/course/student/${ID}/enrolled`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+        });
 
-        } catch (error) {
-          setError(error.message)
+        if (!enrolledResponse.ok) {
+          throw new Error('Failed to fetch enrolled courses');
         }
-      };
-      getData();
-  },[]);
+
+        const enrolledData = await enrolledResponse.json();
+        setEnrolledCourses(enrolledData.data);
+
+        // Fetch recommended courses
+        const recommendedResponse = await fetch(`http://127.0.0.1:8000/v1/recommendations/${ID}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+        });
+
+        if (!recommendedResponse.ok) {
+          throw new Error('Failed to fetch recommended courses');
+        }
+
+        const recommendedData = await recommendedResponse.json();
+        setRecommendedCourses(recommendedData.data || []);
+
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [ID]);
 
   const openpopup = async(sub)=>{ 
     setsubDetails(sub);
@@ -60,37 +85,76 @@ function StudentCourses() {
     "computer" : "https://www.figma.com/file/6b4R8evBkii6mI53IA4vSS/image/a64c93efe984ab29f1dfb9e8d8accd9ba449f272",
   }
 
+  const renderCourseCard = (course) => (
+    <div key={course._id} className="text-white rounded-md bg-[#042439] cursor-pointer text-center p-3 w-[15rem]" onClick={() => openpopup(course)}>
+      <div className='flex justify-center items-center'>
+        <img src={Image[course.coursename]} alt={course.coursename} width={60}/>
+        <p>{course.coursename.toUpperCase()}</p>
+      </div>
+      <p className='mt-5 text-gray-300 text-sm text-center px-2'>{course.description}</p>
+
+      {course.schedule && (
+        <div>
+          <p className='mt-2 text-blue-700 font-bold'>Timing:</p>
+          {'[ '}
+          {course.schedule.map(daytime => {
+            return `${daysName[daytime.day]} ${Math.floor(daytime.starttime / 60)}:${daytime.starttime % 60 === 0 ? "00" : daytime.starttime % 60} - ${Math.floor(daytime.endtime/60)}:${daytime.endtime % 60 === 0 ? "00" : daytime.endtime % 60}`;
+          }).join(', ')}
+          {' ]'}
+        </div>
+      )}
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-xl text-gray-600">Loading courses...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-xl text-red-600">Error: {error}</div>
+      </div>
+    );
+  }
+
   return (
     <>
-    <div className='flex gap-10 pl-[12rem] mt-12 flex-wrap justify-center mb-2'>
-        {data.map(sub => (
-          <div key={sub._id} className="text-white rounded-md bg-[#042439] cursor-pointer text-center p-3 w-[15rem]" onClick={()=>openpopup(sub)}>
-            <div className='flex justify-center items-center'>
-              <img src={Image[sub.coursename]} alt={sub.coursename} width={60}/>
-              <p>{sub.coursename.toUpperCase()}</p>
-            </div>
-            <p className='mt-5 text-gray-300 text-sm text-center px-2 '>{sub.description}</p>
-
-            {sub.schedule && (
-              <div>
-                <p className='mt-2 text-blue-700 font-bold'>Timing:</p>
-                {'[ '}
-                {sub.schedule.map(daytime => {
-                  return `${daysName[daytime.day]} ${Math.floor(daytime.starttime / 60)}:${daytime.starttime % 60 === 0 ? "00" : daytime.starttime % 60} - ${Math.floor(daytime.endtime/60)}:${daytime.endtime % 60 === 0 ? "00" : daytime.endtime % 60}`;
-                }).join(', ')}
-                {' ]'}
-              </div>
+      <div className='pl-[12rem] mt-12'>
+        {/* Enrolled Courses Section */}
+        <div className='mb-8'>
+          <h2 className='text-2xl font-bold text-[#042439] mb-4'>My Enrolled Courses</h2>
+          <div className='flex gap-10 flex-wrap justify-center'>
+            {enrolledCourses.length > 0 ? (
+              enrolledCourses.map(course => renderCourseCard(course))
+            ) : (
+              <p className="text-gray-600">No enrolled courses yet.</p>
             )}
-        
-            {/* <p className='mt-5 text-gray-300 text-sm text-center px-2 '>Fees : Rs. {price[sub.coursename]}</p> */}
           </div>
-        ))}
-    </div>
-    {popup && (
-      <Popup onClose={()=> setPopup(false)} subject={subDetails} allSubject={subD}/>
-    )}
+        </div>
+
+        {/* Recommended Courses Section */}
+        <div className='mb-8'>
+          <h2 className='text-2xl font-bold text-[#042439] mb-4'>Recommended Courses</h2>
+          <div className='flex gap-10 flex-wrap justify-center'>
+            {recommendedCourses.length > 0 ? (
+              recommendedCourses.map(course => renderCourseCard(course))
+            ) : (
+              <p className="text-gray-600">No recommended courses available. Take the quiz to get personalized recommendations!</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {popup && (
+        <Popup onClose={() => setPopup(false)} subject={subDetails} allSubject={subD}/>
+      )}
     </>
-  )
+  );
 }
 
 export default StudentCourses

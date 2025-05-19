@@ -9,11 +9,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 
-class RecommendationController 
+class RecommendationController
 {
     public function __construct()
     {
-        $this->middleware('api');
+
     }
 
     public function index()
@@ -23,34 +23,60 @@ class RecommendationController
 
     public function store(Request $request)
     {
-        $request->validate([
-            'recommendations' => 'required|array',
-            'recommendations.*.language' => 'required|string',
-            'recommendations.*.score' => 'required|numeric',
-            'recommendations.*.userId' => 'required|exists:users,id'
-        ]);
+        Log::info('Received recommendation request:', ['request' => $request->all()]);
 
-        $recommendations = [];
+        try {
+            $request->validate([
+                'recommendations' => 'required|array',
+                'recommendations.*.language' => 'required|string',
+                'recommendations.*.score' => 'required|numeric',
+                'recommendations.*.userId' => 'required|exists:users,id'
+            ]);
 
-        foreach ($request->recommendations as $rec) {
-            // Find lessons matching the language
-            $lessons = Lesson::where('title', 'LIKE', "%{$rec['language']}%")
-                           ->orWhere('description', 'LIKE', "%{$rec['language']}%")
-                           ->get();
+            Log::info('Validation passed, processing recommendations');
 
-            foreach ($lessons as $lesson) {
-                $recommendations[] = Recommendation::create([
-                    'user_id' => $rec['userId'],
-                    'lesson_id' => $lesson->id,
-                    'recommendation_score' => $rec['score']
-                ]);
+            $createdRecs = [];
+
+            foreach ($request->recommendations as $rec) {
+                Log::info('Processing recommendation:', ['recommendation' => $rec]);
+                
+                // Search for lessons where the title contains the language string
+                $lessons = Lesson::where('title', 'LIKE', '%' . $rec['language'] . '%')->get();
+                Log::info('Found matching lessons:', ['count' => $lessons->count(), 'lessons' => $lessons->toArray()]);
+
+                foreach ($lessons as $lesson) {
+                    $created = Recommendation::create([
+                        'user_id' => $rec['userId'],
+                        'lesson_id' => $lesson->id,
+                        'recommendation_score' => $rec['score']
+                    ]);
+                    $createdRecs[] = $created->id;
+                    Log::info('Created recommendation:', ['id' => $created->id]);
+                }
             }
-        }
 
-        return response()->json([
-            'message' => 'Recommendations created successfully',
-            'data' => $recommendations
-        ], 201);
+            // Fetch created recommendations with lesson details
+            $data = Recommendation::with('lesson')
+                        ->whereIn('id', $createdRecs)
+                        ->get();
+
+            Log::info('Returning response:', ['data' => $data->toArray()]);
+
+            return response()->json([
+                'message' => 'Recommendations created successfully',
+                'data' => $data
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Error in recommendation creation:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'Error creating recommendations',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function getUserRecommendations($userId)

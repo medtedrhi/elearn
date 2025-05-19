@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 function TeacherCourses() {
+  const navigate = useNavigate();
   const [showPopup, setShowPopup] = useState(false);
   const [subject, setSubject] = useState('');
   const [courses, setCourses] = useState([]);
@@ -134,7 +136,6 @@ function TeacherCourses() {
       setNewCourse({ ...newCourse, sections: updatedSections });
     }
   };
-
   const removeContent = (sectionIndex, contentIndex) => {
     const section = newCourse.sections[sectionIndex];
     if (section.contents.length > 1) {
@@ -265,6 +266,10 @@ function TeacherCourses() {
   const createCourse = (sub) => {
     setSubject(sub);
     setShowPopup(true);
+  };
+
+  const handleViewCourse = (courseId) => {
+    navigate(`/courses/${courseId}`);
   };
 
   return (
@@ -441,17 +446,26 @@ function TeacherCourses() {
               <table className="min-w-full bg-white">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Difficulty</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Title</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Description</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Difficulty</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {courses.map((course) => (
                     <tr key={course.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{course.title}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{course.description}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{course.difficulty}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{course.title}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{course.description}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{course.difficulty}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        <button
+                          onClick={() => handleViewCourse(course.id)}
+                          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
+                        >
+                          View Course
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

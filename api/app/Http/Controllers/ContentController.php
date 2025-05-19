@@ -16,10 +16,18 @@ class ContentController
     {
         $data = $request->validate([
             'section_id' => 'required|exists:sections,id',
+            'content_type' => 'required|in:text,video,quiz,file',
             'text' => 'required|string',
+            'order_num' => 'required|integer'
         ]);
 
-        $content = Content::create($data);
+        $content = Content::create([
+            'section_id' => $data['section_id'],
+            'content_type' => $data['content_type'],
+            'content_data' => $data['text'],
+            'order_num' => $data['order_num']
+        ]);
+
         return response()->json($content, 201);
     }
 

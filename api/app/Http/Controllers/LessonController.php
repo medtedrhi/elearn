@@ -17,6 +17,8 @@ class LessonController
         $data = $request->validate([
             'title' => 'required|string',
             'description' => 'required|string',
+            'difficulty' => 'required|in:beginner,intermediate,advanced',
+            'estimated_duration' => 'required|integer'
         ]);
 
         $lesson = Lesson::create($data);

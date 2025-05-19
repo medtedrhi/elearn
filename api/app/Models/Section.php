@@ -9,10 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Section extends Model
 {
     protected $fillable = [
-        'lesson_id', 'title', 'order_num',
+        'lesson_id',
+        'title',
+        'order_num'
     ];
 
-    //  Relationships
+    // Relationships
     public function lesson(): BelongsTo
     {
         return $this->belongsTo(Lesson::class);

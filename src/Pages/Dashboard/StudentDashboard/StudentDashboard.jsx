@@ -13,62 +13,73 @@ function StudentDashboard() {
 
   const Handlelogout = async() => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/v1/logout', {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        // If no token exists, just redirect to login
+        navigator('/login');
+        return;
+      }
+
+      const response = await fetch('http://127.0.0.1:8000/api/logout', {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem('token')}`
+          "Authorization": `Bearer ${token}`
         }
       });
       
       // Clear localStorage and redirect regardless of response
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      navigator('/');
       
       if (response.ok) {
         toast.success('Logged out successfully');
       } else {
         console.error('Logout failed:', await response.json());
       }
+      navigator('/login');
     } catch (error) {
       console.error('Logout error:', error);
       // Still clear localStorage and redirect even if the API call fails
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      navigator('/');
+      navigator('/login');
     }
   }
 
   useEffect(() => {
-    const getData = async () => {
-      try {
-        const response = await fetch(`http://127.0.0.1:8000/v1/users/${ID}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
+  const fetchData = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return navigator('/login');
+    }
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch data');
-        }
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/users/${ID}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-        const user = await response.json();
-        setdata(user);
-      } catch (error) {
-        setError(error.message);
-        if (error.message === 'Failed to fetch data') {
-          // If unauthorized, redirect to login
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          navigator('/login');
-        }
+      if (response.status === 401) {
+        // Token is invalid or expired
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        return navigator('/login');
       }
-    };
-    getData();
-  }, []);
+
+      const user = await response.json();
+      if (!response.ok) throw new Error('Fetch failed');
+
+      setdata(user.data || user);
+    } catch (err) {
+      console.error('Error fetching user:', err);
+    }
+  };
+
+  fetchData();
+}, []);
+
 
   return (
     <>
@@ -81,9 +92,15 @@ function StudentDashboard() {
           <h1 className='text-2xl text-[#4E84C1] font-bold'>eduwise</h1>
         </div>
     
-        <div className='bg-[#0D199D] text-white py-2 px-5 rounded-full'>
-          <p onClick={Handlelogout}>logout</p>
-        </div>
+        <button 
+          onClick={Handlelogout}
+          className='bg-[#4E84C1] hover:bg-[#3a6da3] text-white py-2 px-6 rounded-lg flex items-center gap-2 transition-colors duration-200'
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M3 3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H3zm7 4a1 1 0 1 0-2 0v4a1 1 0 1 0 2 0V7zm2.707 1.293a1 1 0 0 0-1.414 1.414L12.586 11H7a1 1 0 1 0 0 2h5.586l-1.293 1.293a1 1 0 1 0 1.414 1.414l3-3a1 1 0 0 0 0-1.414l-3-3z" clipRule="evenodd" />
+          </svg>
+          Logout
+        </button>
       </nav>
 
       <div className='bg-[#008280] flex justify-between items-center'>

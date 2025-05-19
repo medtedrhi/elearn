@@ -11,7 +11,7 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\ProgressController;
 use App\Http\Controllers\RecommendationController;
-use App\Http\Controllers\AuthController;
+
 
 Route::prefix('v1')->group(function () {
     // User routes
@@ -43,13 +43,6 @@ Route::prefix('v1')->group(function () {
 
     // Recommendation routes
     Route::resource('recommendations', RecommendationController::class);
-
-    // Auth routes
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
-    
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::get('/profile/{id}', [AuthController::class, 'profile']);
-        Route::post('/logout', [AuthController::class, 'logout']);
-    });
+    Route::get('recommendations/user/{userId}', [RecommendationController::class, 'getUserRecommendations']);
 });
+

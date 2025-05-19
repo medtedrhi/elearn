@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Footer from '../Pages/Footer/Footer';
 import Header from '../Pages/Home/Header/Header';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 
 // Define your quiz questions per language
 const tableHeaderCellStyle = {
@@ -87,8 +88,28 @@ function Quiz() {
   const [current, setCurrent] = useState(0);
   const [scoreMap, setScoreMap] = useState({});
   const [showResult, setShowResult] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // Get user data from localStorage
+    try {
+      const userData = JSON.parse(localStorage.getItem('user'));
+      console.log('User data from localStorage:', userData); // Debug log
+      if (userData && userData.id) {
+        setUser(userData);
+      } else {
+        console.error('No valid user data found:', userData);
+        toast.error('User session not found');
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      toast.error('Session error');
+      navigate('/login');
+    }
+
     // Flatten and tag questions
     let combined = [];
     Object.entries(rawQuestions).forEach(([lang, qs]) => {
@@ -104,7 +125,79 @@ function Quiz() {
     }
 
     setQuestions(combined);
-  }, []);
+  }, [navigate]);
+
+  const saveRecommendations = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token || !user) {
+        console.error('No token or user found');
+        toast.error('Authentication required');
+        navigate('/login');
+        return;
+      }
+
+      // Calculate recommendations based on quiz scores
+      const recommendations = Object.keys(rawQuestions).map(lang => {
+        const correct = scoreMap[lang] || 0;
+        const total = rawQuestions[lang].length;
+        const percent = (correct / total) * 100;
+        return {
+          language: lang.toLowerCase(),
+          score: percent,
+          userId: user.id
+        };
+      });
+
+      console.log('Sending recommendations:', { recommendations });
+
+      // Save recommendations to backend
+      const response = await fetch('http://127.0.0.1:8000/api/v1/recommendations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ recommendations })
+      });
+
+      let responseData;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        responseData = await response.json();
+      } else {
+        const text = await response.text();
+        console.error('Received non-JSON response:', text);
+        throw new Error('Invalid server response format');
+      }
+
+      console.log('Server response:', responseData);
+
+      if (!response.ok) {
+        throw new Error(responseData.message || responseData.error || 'Failed to save recommendations');
+      }
+
+      if (responseData.data && responseData.data.length === 0) {
+        toast.warning('No matching courses found for your quiz results. You will be redirected to browse all courses.');
+      } else {
+        toast.success('Quiz results saved successfully! Redirecting to recommended courses...');
+      }
+      
+      // Small delay before navigation to ensure toast is visible
+      setTimeout(() => {
+        navigate(`/Student/Dashboard/${user.id}/Courses`);
+      }, 1500);
+    } catch (error) {
+      console.error('Error saving recommendations:', error);
+      toast.error(error.message || 'Failed to save quiz results. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleAnswer = (option) => {
     const currentQuestion = questions[current];
@@ -168,176 +261,94 @@ function Quiz() {
           </>
         )}
 
-{showResult && (
-  <div
-    style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      marginTop: '2rem',
-      padding: '1rem',
-    }}
-  >
-    <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem', color: '#0077b6' }}>
-      🎉 Quiz Completed!
-    </h2>
-    <h3 style={{ marginBottom: '1.5rem', color: '#023e8a' }}>Results by Language</h3>
+        {showResult && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              marginTop: '2rem',
+              padding: '1rem',
+            }}
+          >
+            <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem', color: '#0077b6' }}>
+              🎉 Quiz Completed!
+            </h2>
+            <h3 style={{ marginBottom: '1.5rem', color: '#023e8a' }}>Results by Language</h3>
 
-    <div style={{ overflowX: 'auto', width: '100%', maxWidth: '700px' }}>
-      <table
-        style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          backgroundColor: '#f9fbfd',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-        }}
-      >
-        <thead>
-          <tr style={{ backgroundColor: '#0077b6', color: 'white' }}>
-            <th style={tableHeaderCellStyle}>Language</th>
-            <th style={tableHeaderCellStyle}>Correct</th>
-            <th style={tableHeaderCellStyle}>Total</th>
-            <th style={tableHeaderCellStyle}>Score</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Object.keys(rawQuestions).map((lang) => {
-            const correct = scoreMap[lang] || 0;
-            const total = rawQuestions[lang].length;
-            const percent = ((correct / total) * 100).toFixed(1);
-
-            let percentColor = '';
-            let note = '';
-            if (percent < 50) {
-              percentColor = '#e63946';
-              note = '❌ Needs improvement';
-            } else if (percent < 70) {
-              percentColor = '#ffb703';
-              note = '⚠️ Review the basics';
-            } else {
-              percentColor = '#2a9d8f';
-              note = '✅ Great job!';
-            }
-
-            return (
-              <tr key={lang}>
-                <td style={tableBodyCellStyle}>{lang}</td>
-                <td style={tableBodyCellStyle}>{correct}</td>
-                <td style={tableBodyCellStyle}>{total}</td>
-                <td style={{ ...tableBodyCellStyle, color: percentColor, fontWeight: 600 }}>
-                  {percent}%
-                  <div style={{ fontSize: '0.85rem', color: '#555', marginTop: '4px' }}>{note}</div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  </div>
-)}
-
-
-
-{Object.keys(rawQuestions).some(lang => ((scoreMap[lang] || 0) / rawQuestions[lang].length) * 100 < 50) && (
-  <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-    <h3 style={{ color: '#e63946' }}>Need extra help? Start reviewing below 👇</h3>
-
-    <div
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "center",
-        gap: "1rem",
-        marginTop: "1rem",
-      }}
-    >
-  {showResult && Object.keys(rawQuestions).some(lang => ((scoreMap[lang] || 0) / rawQuestions[lang].length) * 100 < 50) && (
-  <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-    <h3 style={{ color: '#e63946' }}>Looks like you need extra help in some topics 👇</h3>
-
-    <div
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "center",
-        gap: "1rem",
-        marginTop: "1rem",
-      }}
-    >
-      {Object.keys(rawQuestions).map((lang) => {
-        const correct = scoreMap[lang] || 0;
-        const total = rawQuestions[lang].length;
-        const percent = (correct / total) * 100;
-
-        if (percent < 50) {
-          return (
-            <a key={lang} href={`/courses`} style={{ textDecoration: 'none' }}>
-              <button
+            <div style={{ overflowX: 'auto', width: '100%', maxWidth: '700px' }}>
+              <table
                 style={{
-                  flex: "1 1 200px",
-                  padding: "1rem 2rem",
-                  fontSize: "1rem",
-                  backgroundColor: "#e63946",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  transition: "background-color 0.3s",
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  backgroundColor: '#f9fbfd',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
                 }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#b02a37")}
-                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#e63946")}
               >
-                Review {lang} Course
-              </button>
-            </a>
-          );
-        }
+                <thead>
+                  <tr style={{ backgroundColor: '#0077b6', color: 'white' }}>
+                    <th style={tableHeaderCellStyle}>Language</th>
+                    <th style={tableHeaderCellStyle}>Correct</th>
+                    <th style={tableHeaderCellStyle}>Total</th>
+                    <th style={tableHeaderCellStyle}>Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.keys(rawQuestions).map((lang) => {
+                    const correct = scoreMap[lang] || 0;
+                    const total = rawQuestions[lang].length;
+                    const percent = ((correct / total) * 100).toFixed(1);
 
-        return null;
-      })}
-    </div>
-  </div>
-)}
+                    let percentColor = '';
+                    let note = '';
+                    if (percent < 50) {
+                      percentColor = '#e63946';
+                      note = '❌ Needs improvement';
+                    } else if (percent < 70) {
+                      percentColor = '#ffb703';
+                      note = '⚠️ Review the basics';
+                    } else {
+                      percentColor = '#2a9d8f';
+                      note = '✅ Great job!';
+                    }
 
-    </div>
-  </div>
-)}
+                    return (
+                      <tr key={lang}>
+                        <td style={tableBodyCellStyle}>{lang}</td>
+                        <td style={tableBodyCellStyle}>{correct}</td>
+                        <td style={tableBodyCellStyle}>{total}</td>
+                        <td style={{ ...tableBodyCellStyle, color: percentColor, fontWeight: 600 }}>
+                          {percent}%
+                          <div style={{ fontSize: '0.85rem', color: '#555', marginTop: '4px' }}>{note}</div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-<div
-  style={{
-    display: "flex",
-    flexWrap: "wrap",
-    justifyContent: "space-around",
-    gap: "1rem",
-    marginBottom: "2rem",
-  }}
->
-    <Link to="/courses">  <button 
-    style={{
-      flex: "1 1 200px",
-      padding: "1rem 2rem",
-      fontSize: "1rem",
-      backgroundColor: "#0077b6",
-      color: "white",
-      border: "none",
-      borderRadius: "8px",
-      cursor: "pointer",
-      transition: "background-color 0.3s",
-    }}
-    onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#005f87")}
-    onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#0077b6")}
-  >
-    View Courses
-  </button>
-  </Link>
-
-
-</div>
-
-
+            <button
+              onClick={saveRecommendations}
+              disabled={isSaving}
+              style={{
+                marginTop: '2rem',
+                padding: '1rem 2rem',
+                fontSize: '1.1rem',
+                backgroundColor: '#2a9d8f',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: isSaving ? 'not-allowed' : 'pointer',
+                transition: 'background-color 0.3s',
+              }}
+            >
+              {isSaving ? 'Saving Results...' : 'Save Results & Continue to Dashboard'}
+            </button>
+          </div>
+        )}
       </div>
       <Footer />
     </>

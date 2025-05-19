@@ -57,7 +57,11 @@ const AppRouter = () => {
         <Route path='/adminLogin/' element={<AdminLogin />} />
         <Route path='/rejected/:user/:ID' element={<Rejected />} />
         <Route path='/pending' element={<Pending />} />
-        <Route path="/quiz" element={<Quiz/>}/>
+        <Route path="/quiz" element={
+          <ProtectedRoute>
+            <Quiz />
+          </ProtectedRoute>
+        }/>
         {/* Protected Routes */}
         <Route path='/admin/:data' element={
           <ProtectedRoute>
@@ -80,6 +84,7 @@ const AppRouter = () => {
             <StudentLayout />
           </ProtectedRoute>
         }>
+          
           <Route path='/Student/Dashboard/:ID/Search' element={<SearchTeacher />} />
           <Route path='/Student/Dashboard/:ID/Classes' element={<StudentClasses />} />
           <Route path='/Student/Dashboard/:ID/Courses' element={<StudentCourses />} />

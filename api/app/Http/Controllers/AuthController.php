@@ -41,7 +41,7 @@ class AuthController
     // Login
     public function login(Request $request)
     {
-        $credentials = $request->only('email', 'password');
+        $credentials = $request->only('email', 'password','role');
 
         if (!Auth::attempt($credentials)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
@@ -57,7 +57,6 @@ class AuthController
             'user' => $user,
         ]);
     }
-
     // Logout
     public function logout(Request $request)
     {

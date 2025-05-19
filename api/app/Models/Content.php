@@ -28,4 +28,12 @@ class Content extends Model
     {
         return $this->hasOne(File::class);
     }
+
+    // Helper method to get the full course path
+    public function getCoursePath()
+    {
+        return $this->section->lesson->title . ' > ' . 
+               $this->section->title . ' > ' . 
+               $this->content_type;
+    }
 }

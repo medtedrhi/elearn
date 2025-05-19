@@ -31,12 +31,25 @@ function DashboardTeacher() {
   }, []);
 
   return (
-    <div className="m-5 ml-60 text-white">
-      <div className="flex flex-col gap-5">
-        <p>Name: <span className="text-black">{data.username} </span></p>
-        <p>Email: <span className="text-black">{data.email}</span></p>
+    <div className="m-5 ml-60">
+      <div className="bg-gray-800 shadow-lg rounded-lg overflow-hidden border border-gray-700">
+        <table className="min-w-full">
+          <thead className="bg-gray-900 text-gray-100">
+            
+          </thead>
+          <tbody className="bg-gray-800 divide-y divide-gray-700">
+            <tr className="hover:bg-gray-700 transition-colors duration-200">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-300">Name</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{data.username}</td>
+            </tr>
+            <tr className="hover:bg-gray-700 transition-colors duration-200">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-300">Email</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{data.email}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      {error && <p className="text-red-500">Error: {error}</p>}
+      {error && <p className="mt-4 text-red-500">Error: {error}</p>}
     </div>
   );
 }

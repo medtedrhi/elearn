@@ -13,7 +13,8 @@ const ProtectedRoute = ({ children }) => {
   // Check if the current route matches the user's role
   const isAuthorized = () => {
     const path = location.pathname;
-    if (user.role === 'student' && path.startsWith('/Student/Dashboard')) {
+    // Allow students to access quiz
+    if (user.role === 'student' && (path === '/quiz' || path.startsWith('/Student/Dashboard'))) {
       return true;
     }
     if (user.role === 'professor' && path.startsWith('/Teacher/Dashboard')) {
@@ -29,7 +30,11 @@ const ProtectedRoute = ({ children }) => {
     // Redirect to appropriate dashboard based on role
     switch (user.role) {
       case 'student':
-        return <Navigate to={`/Student/Dashboard/${user.id}/Search`} replace />;
+        // Don't redirect students from quiz to dashboard
+        if (location.pathname !== '/quiz') {
+          return <Navigate to={`/Student/Dashboard/${user.id}/Search`} replace />;
+        }
+        return children;
       case 'professor':
         return <Navigate to={`/Teacher/Dashboard/${user.id}/Home`} replace />;
       case 'admin':

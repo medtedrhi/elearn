@@ -31,5 +31,16 @@ class Lesson extends Model
     {
         return $this->hasMany(Recommendation::class);
     }
+
+    // Helper method to get course content
+    public function getAllContent()
+    {
+        return $this->sections()
+            ->with(['contents' => function ($query) {
+                $query->orderBy('order_num');
+            }])
+            ->orderBy('order_num')
+            ->get();
+    }
 }
 

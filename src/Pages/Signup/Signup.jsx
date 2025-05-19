@@ -64,7 +64,7 @@ const Signup = () => {
     };
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/register', {
+      const response = await fetch('http://127.0.0.1:8000/api/register', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -73,20 +73,23 @@ const Signup = () => {
       });
 
       const responseData = await response.json();
+      console.log('Registration response:', responseData);
 
       if (response.ok) {
         // Store the token and user data
         localStorage.setItem('token', responseData.token);
         localStorage.setItem('user', JSON.stringify(responseData.user));
-        if(!(userType == 'teacher')){
-         navigate('/quiz');
-
-        }else{
-          console.log(responseData)
-          navigate('/Teacher/Dashboard/' + responseData.user.username)
+        
+        console.log('Registration successful, user data:', responseData.user);
+        
+        if(userType === 'teacher') {
+          navigate('/Teacher/Dashboard/' + responseData.user.id);
+        } else {
+          // For students, redirect to quiz
+          console.log('Redirecting student to quiz...');
+          navigate('/quiz', { replace: true });
         }
         toast.success('Registration successful!');
-        
       } else {
         // Handle validation errors from the server
         if (response.status === 422) {

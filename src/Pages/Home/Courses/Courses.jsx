@@ -38,8 +38,7 @@ function Courses() {
     <>
       <Header />
       <div className="courses">
-        <center><button>Add course as a teacher</button></center>
-        <br />
+        
         <p>Explore Programming Courses</p>
         <hr className="underLine" />
 

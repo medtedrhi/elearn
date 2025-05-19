@@ -8,7 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Recommendation extends Model
 {
     protected $fillable = [
-        'user_id', 'lesson_id', 'recommendation_score',
+        'user_id',
+        'lesson_id',
+        'recommendation_score'
+    ];
+
+    protected $casts = [
+        'recommendation_score' => 'float',
     ];
 
     // 🔗 Relationships
